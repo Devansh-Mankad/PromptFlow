@@ -20,9 +20,9 @@ AGENT1_LOADING_PARAMS = {
 
 AGENT1_INFERENCE_PARAMS = {
     # Maximum output length (approx. 180-200 words)
-    "max_tokens": 250,
+    "max_tokens": 768,
     # Controls output randomness; 0.7 provides a balance between consistency and creativity
-    "temperature": 0.7,
+    "temperature": 0.4,
     # Uses high-probability token choices for reliable outputs
     "top_p": 0.9,
     # Limits token selection to the top 40 likely candidates
@@ -48,7 +48,7 @@ AGENT2_LOADING_PARAMS = {
 
 AGENT2_INFERENCE_PARAMS = {
     # Maximum output length (approx. 700-800 words)
-    "max_tokens": 1024,
+    "max_tokens": 2048,
     # Controls output randomness; 0.7 provides a balance between consistency and creativity
     "temperature": 0.5,
     # Uses high-probability token choices for reliable outputs
