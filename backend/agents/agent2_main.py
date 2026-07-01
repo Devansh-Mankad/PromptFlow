@@ -1,6 +1,8 @@
 from llama_cpp import Llama
-from prompts.agent2_system import AGENT2_SYSTEM_PROMPT
-from config.settings import (
+import sys
+sys.path.append(".")
+from backend.prompts.agent2_system import AGENT2_SYSTEM_PROMPT
+from backend.config.settings import (
     AGENT2_MODEL_PATH,
     AGENT2_LOADING_PARAMS,
     AGENT2_INFERENCE_PARAMS
