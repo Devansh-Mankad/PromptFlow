@@ -1,0 +1,75 @@
+# Models
+models/
+backend/models/
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.pkl
+
+# Dataset & Documents
+Dataset/
+dataset/
+Documents/
+
+# Environment
+.env
+.env.*
+venv/
+.venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+*.egg
+build/
+dist/
+
+# React / Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.cache/
+.npm/
+
+# Jupyter
+*.ipynb
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Generated Outputs
+training_output/
+promptflow_training_output/
+classifier_output/
+evaluation/
+results/
+reports/
+test_results/
+outputs/
+temp/
+tmp/
