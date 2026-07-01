@@ -50,7 +50,7 @@ AGENT2_INFERENCE_PARAMS = {
     # Maximum output length (approx. 700-800 words)
     "max_tokens": 2048,
     # Controls output randomness; 0.7 provides a balance between consistency and creativity
-    "temperature": 0.5,
+    "temperature": 0.7,
     # Uses high-probability token choices for reliable outputs
     "top_p": 0.90,
     # Limits token selection to the top 40 likely candidates
