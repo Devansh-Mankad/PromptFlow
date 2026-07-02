@@ -89,5 +89,4 @@ class Agent1:
 agent1_instance = Agent1()
 
 def run_agent1(user_input: str) -> str:
-    """Public function for pipeline to call"""
     return agent1_instance.refine(user_input)

@@ -5,10 +5,7 @@ from backend.agents.agent1_gemma import run_agent1
 from backend.agents.agent2_main import run_agent2
 from backend.agents.raw_agent import run_raw_agent
 
-
 classifier = IntentClassifier()
-
-
 def process_query(user_input: str) -> dict:
     """
     PromptFlow Pipeline

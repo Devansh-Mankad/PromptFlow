@@ -18,7 +18,6 @@ class RawAgent:
             model_path=AGENT2_MODEL_PATH,
             **AGENT2_LOADING_PARAMS
         )
-
         print("Raw Assistant loaded successfully ✓")
 
     def _build_prompt(self, user_input: str) -> str:

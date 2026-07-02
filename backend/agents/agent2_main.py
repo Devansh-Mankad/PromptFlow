@@ -84,5 +84,4 @@ agent2_instance = Agent2()
 
 
 def run_agent2(refined_prompt: str) -> str:
-    """Public function for pipeline to call"""
     return agent2_instance.respond(refined_prompt)
