@@ -27,18 +27,11 @@ def process_query(user_input: str) -> dict:
         refined_prompt = run_agent1(user_input)
         response = run_agent2(refined_prompt)
         return {
-            "intent": intent,
-            "confidence": confidence,
-            "pipeline": "PromptFlow",
             "refined_prompt": refined_prompt,
             "response": response
         }
 
     response = run_raw_agent(user_input)
     return {
-        "intent": intent,
-        "confidence": confidence,
-        "pipeline": "Base Assistant",
-        "refined_prompt": None,
         "response": response
     }
