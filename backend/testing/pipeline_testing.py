@@ -1,189 +1,147 @@
-import csv
-import time
 import sys
 sys.path.append(".")
-from backend.pipeline.chain import process_query
+from backend.pipeline.chain import process_query, clear_history
 
-test_cases = [
-    ("Hello!", "GREETING"),
-    ("Good morning 😊", "GREETING"),
-    ("Are you still online?", "META"),
-    ("Anyone there?", "META"),
-    ("Thanks a lot!", "THANKS"),
-    ("Really appreciate your help.", "THANKS"),
-    ("Okay, got it.", "ACKNOWLEDGMENT"),
-    ("Makes sense now.", "ACKNOWLEDGMENT"),
-    ("Bye!", "GOODBYE"),
-    ("See you later!", "GOODBYE"),
-    ("Explain binary search.", "TASK"),
-    ("Write Python code for merge sort.", "TASK"),
-    ("Explain quantum computing simply.", "TASK"),
-    ("Generate SQL query for employee table.", "TASK"),
-    ("Design REST API for an e-commerce app.", "TASK"),
-    ("Compare TCP and UDP.", "TASK"),
-    ("Optimize this C++ code for speed.", "TASK"),
-    ("Explain Docker Compose with example.", "TASK"),
-    ("Create a React login page.", "TASK"),
-    ("What is prompt engineering?", "TASK"),
-    ("Hello, What is Gemma Model?", "TASK"),
-    ("Okay that's fine. Now explain Gemma 3 1B.", "TASK"),
+# ANSI colors for readable output
+GREEN  = "\033[92m"
+BLUE   = "\033[94m"
+YELLOW = "\033[93m"
+CYAN   = "\033[96m"
+RED    = "\033[91m"
+RESET  = "\033[0m"
+BOLD   = "\033[1m"
+
+def divider(title: str = ""):
+    line = "─" * 60
+    if title:
+        print(f"\n{BOLD}{line}{RESET}")
+        print(f"{BOLD}  {title}{RESET}")
+        print(f"{BOLD}{line}{RESET}")
+    else:
+        print(f"{line}")
+
+def run_turn(turn_number: int, query: str) -> dict:
+    print(f"\n{BLUE}{BOLD}[Turn {turn_number}] User:{RESET} {query}")
+    result = process_query(query)
+
+    print(f"\n{YELLOW}{BOLD}  → Refined RISE Prompt:{RESET}")
+    for line in result["refined_prompt"].splitlines():
+        print(f"    {line}")
+
+    print(f"\n{GREEN}{BOLD}  → Agent 2 Response:{RESET}")
+    # Print first 300 chars to keep output readable
+    preview = result["response"][:300]
+    if len(result["response"]) > 300:
+        preview += "..."
+    for line in preview.splitlines():
+        print(f"    {line}")
+
+    return result
+
+def check_context(rise_prompt: str, expected_keyword: str) -> bool:
+    """Check if the RISE prompt contains the expected topic keyword."""
+    return expected_keyword.lower() in rise_prompt.lower()
+
+
+# TEST SUITE 1 — Linux follow-up chain
+divider("TEST SUITE 1 — Follow-up pronoun resolution (Linux)")
+clear_history()
+r1 = run_turn(1, "Explain Linux")
+divider()
+
+r2 = run_turn(2, "What are its applications?")
+t2_pass = check_context(r2["refined_prompt"], "linux")
+print(f"\n  {GREEN}✓ PASS{RESET}" if t2_pass else f"\n  {RED}✗ FAIL — 'linux' not found in RISE prompt{RESET}")
+divider()
+
+r3 = run_turn(3, "Compare it with Windows")
+t3_pass = check_context(r3["refined_prompt"], "linux")
+print(f"\n  {GREEN}✓ PASS{RESET}" if t3_pass else f"\n  {RED}✗ FAIL — 'linux' not found in RISE prompt{RESET}")
+divider()
+
+r4 = run_turn(4, "Give me some examples")
+t4_pass = check_context(r4["refined_prompt"], "linux")
+print(f"\n  {GREEN}✓ PASS{RESET}" if t4_pass else f"\n  {RED}✗ FAIL — 'linux' not found in RISE prompt{RESET}")
+divider()
+
+r5 = run_turn(5, "Explain it in more detail")
+t5_pass = check_context(r5["refined_prompt"], "linux")
+print(f"\n  {GREEN}✓ PASS{RESET}" if t5_pass else f"\n  {RED}✗ FAIL — 'linux' not found in RISE prompt{RESET}")
+
+# TEST SUITE 2 — Topic switch (Docker after Linux)
+divider("TEST SUITE 2 — Topic switch detection")
+clear_history()
+
+run_turn(1, "Explain Linux")
+divider()
+
+r2 = run_turn(2, "Now explain Docker")
+t2_pass = check_context(r2["refined_prompt"], "docker")
+print(f"\n  {GREEN}✓ PASS{RESET}" if t2_pass else f"\n  {RED}✗ FAIL — 'docker' not found in RISE prompt{RESET}")
+divider()
+
+r3 = run_turn(3, "How does it work internally?")
+t3_pass = check_context(r3["refined_prompt"], "docker")
+print(f"\n  {GREEN}✓ PASS{RESET}" if t3_pass else f"\n  {RED}✗ FAIL — expected 'docker', not 'linux'{RESET}")
+
+# TEST SUITE 3 — Independent query (no history needed)
+divider("TEST SUITE 3 — Independent query (fresh history)")
+clear_history()
+
+r1 = run_turn(1, "What is machine learning?")
+t1_pass = check_context(r1["refined_prompt"], "machine learning")
+print(f"\n  {GREEN}✓ PASS{RESET}" if t1_pass else f"\n  {RED}✗ FAIL — 'machine learning' not in RISE prompt{RESET}")
+
+
+# TEST SUITE 4 — History trim (more than MAX_TURNS)
+divider("TEST SUITE 4 — History trimming (6 turns, MAX=5)")
+clear_history()
+
+topics = [
+    "Explain Python",
+    "Explain JavaScript",
+    "Explain Rust",
+    "Explain Go",
+    "Explain TypeScript",
+    "Explain Kotlin",        # 6th turn — oldest (Python) should be trimmed
 ]
 
-correct = 0
-task_count = 0
-non_task_count = 0
+for i, topic in enumerate(topics, 1):
+    run_turn(i, topic)
+    divider()
 
-task_time = 0
-non_task_time = 0
+r7 = run_turn(7, "What are its main use cases?")
+t7_pass = check_context(r7["refined_prompt"], "kotlin")
+print(f"\n  {GREEN}✓ PASS — references Kotlin (last topic){RESET}"
+      if t7_pass
+      else f"\n  {RED}✗ FAIL — should reference 'kotlin', got: {r7['refined_prompt'][:100]}{RESET}")
 
-agent1_success = 0
-agent2_success = 0
-base_success = 0
-csv_rows = []
-print("PROMPTFLOW END-TO-END PIPELINE TEST\n\n")
 
-for i, (query, expected_intent) in enumerate(test_cases, start=1):
-    print(f"Test Case {i}/{len(test_cases)}\n")
+# SUMMARY
+divider("RESULTS SUMMARY")
 
-    start = time.time()
-    result = process_query(query)
-    elapsed = time.time() - start
+results = {
+    "Suite 1 — Turn 2 (its applications)":     t2_pass,
+    "Suite 1 — Turn 3 (compare it)":           t3_pass,
+    "Suite 1 — Turn 4 (give examples)":        t4_pass,
+    "Suite 1 — Turn 5 (more detail)":          t5_pass,
+    "Suite 2 — Topic switch to Docker":         t2_pass,
+    "Suite 2 — Follow-up after switch":         t3_pass,
+    "Suite 3 — Independent query":              t1_pass,
+    "Suite 4 — History trim (Kotlin)":          t7_pass,
+}
 
-    predicted = result["intent"]
-    confidence = result["confidence"]
-    pipeline = result["pipeline"]
+passed = sum(results.values())
+total  = len(results)
+for name, passed_flag in results.items():
+    icon = f"{GREEN}✓{RESET}" if passed_flag else f"{RED}✗{RESET}"
+    print(f"  {icon}  {name}")
 
-    if predicted == expected_intent:
-        correct += 1
-        status = "PASS"
-    else:
-        status = "FAIL"
+print(f"\n{BOLD}  Score: {passed}/{total}{RESET}")
 
-    if pipeline == "PromptFlow":
-        task_count += 1
-        task_time += elapsed
-
-        agent1 = "YES"
-        agent2 = "YES"
-        base = "NO"
-
-        if result.get("refined_prompt"):
-            agent1_success += 1
-
-        if result.get("response"):
-            agent2_success += 1
-
-    else:
-        non_task_count += 1
-        non_task_time += elapsed
-
-        agent1 = "NO"
-        agent2 = "NO"
-        base = "YES"
-
-        if result.get("response"):
-            base_success += 1
-
-    print(f"Input               : {query}")
-    print(f"Expected Intent     : {expected_intent}")
-    print(f"Predicted Intent    : {predicted}")
-    print(f"Confidence          : {confidence:.4f}")
-    print(f"Pipeline Used       : {pipeline}")
-    print(f"Agent 1 Used        : {agent1}")
-    print(f"Agent 2 Used        : {agent2}")
-    print(f"Base Assistant Used : {base}")
-    print(f"Execution Time      : {elapsed:.2f} sec")
-    print(f"Result              : {status}")
-
-    print("\nResponse Preview\n")
-    print(result.get("response", ""),"\n\n")
-
-    csv_rows.append([
-        i,
-        query,
-        expected_intent,
-        predicted,
-        f"{confidence:.4f}",
-        pipeline,
-        agent1,
-        agent2,
-        base,
-        result.get("refined_prompt", ""),
-        result.get("response", ""),
-        f"{elapsed:.2f}",
-        status
-    ])
-
-accuracy = (correct / len(test_cases)) * 100
-
-avg_task_time = (
-    task_time / task_count
-    if task_count else 0
-)
-
-avg_non_task_time = (
-    non_task_time / non_task_count
-    if non_task_count else 0
-)
-
-with open(
-    "pipeline_test_report.csv",
-    "w",
-    newline="",
-    encoding="utf-8-sig"
-) as file:
-
-    writer = csv.writer(file)
-
-    writer.writerow([
-        "Test No",
-        "Input",
-        "Expected Intent",
-        "Predicted Intent",
-        "Confidence",
-        "Pipeline Used",
-        "Agent 1 Used",
-        "Agent 2 Used",
-        "Base Assistant Used",
-        "Refined Prompt",
-        "Final Response",
-        "Execution Time (sec)",
-        "Result"
-    ])
-
-    writer.writerows(csv_rows)
-
-    writer.writerow([])
-    writer.writerow(["Total Test Cases", len(test_cases)])
-    writer.writerow(["Correct Routing", correct])
-    writer.writerow(["Routing Accuracy", f"{accuracy:.2f}%"])
-    writer.writerow(["PromptFlow Invocations", task_count])
-    writer.writerow(["Base Assistant Calls", non_task_count])
-    writer.writerow(["Agent 1 Success", f"{agent1_success}/{task_count}"])
-    writer.writerow(["Agent 2 Success", f"{agent2_success}/{task_count}"])
-    writer.writerow(["Base Assistant Success", f"{base_success}/{non_task_count}"])
-    writer.writerow(["Average TASK Time", f"{avg_task_time:.2f} sec"])
-    writer.writerow(["Average NON-TASK Time", f"{avg_non_task_time:.2f} sec"])
-
-print("\n")
-print("FINAL PIPELINE EVALUATION\n\n")
-
-print(f"Total Test Cases        : {len(test_cases)}")
-print(f"Correct Routing         : {correct}")
-print(f"Routing Accuracy        : {accuracy:.2f}%")
-print()
-
-print(f"PromptFlow Invocations  : {task_count}")
-print(f"Base Assistant Calls    : {non_task_count}")
-print()
-
-print(f"Agent 1 Success         : {agent1_success}/{task_count}")
-print(f"Agent 2 Success         : {agent2_success}/{task_count}")
-print(f"Base Assistant Success  : {base_success}/{non_task_count}")
-print()
-
-print(f"Average TASK Time       : {avg_task_time:.2f} sec")
-print(f"Average NON-TASK Time   : {avg_non_task_time:.2f} sec")
-
-print("\nDetailed report saved as:")
-print("pipeline_test_report.csv")
+if passed == total:
+    print(f"\n{GREEN}{BOLD}  All tests passed. Conversation history is working correctly.{RESET}\n")
+else:
+    print(f"\n{RED}{BOLD}  {total - passed} test(s) failed. Agent 1 is not resolving context reliably.{RESET}\n")
+    print(f"{YELLOW}  Tip: Check your AGENT1_SYSTEM_PROMPT — it should instruct Agent 1 to")
+    print(f"  resolve pronouns like 'it', 'its', 'this' using conversation history.{RESET}\n")
