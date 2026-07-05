@@ -76,3 +76,7 @@ tmp/
 
 agent2_hf.py
 agent1_hf.py
+
+frontend/
+package-lock.json
+package.json
