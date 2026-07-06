@@ -21,7 +21,7 @@ AGENT1_LOADING_PARAMS = {
 AGENT1_INFERENCE_PARAMS = {
     # Maximum output length (approx. 180-200 words)
     "max_tokens": 768,
-    # Controls output randomness; 0.7 provides a balance between consistency and creativity
+    # Controls output randomness
     "temperature": 0.4,
     # Uses high-probability token choices for reliable outputs
     "top_p": 0.9,
