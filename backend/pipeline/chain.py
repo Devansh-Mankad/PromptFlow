@@ -4,9 +4,8 @@ from backend.agents.agent1_gemma import run_agent1
 from backend.agents.agent2_main import run_agent2
 
 # Conversation history for Agent 1
-
 _history: list[dict] = []
-MAX_TURNS = 5
+MAX_TURNS = 3
 
 def _trim_history(history: list[dict], max_turns: int) -> list[dict]:
     """
@@ -34,8 +33,10 @@ def process_query(user_input: str) -> dict:
 
     # Update history with this turn
     _history.append({"role": "user",  "content": user_input})
-    _history.append({"role": "model", "content": refined_prompt})
-
+    _history.append({"role": "model",  "content": refined_prompt})  
+    #_history.append({"role": "model", "content": response})
+    #_history.append({"role": "user", "content": f"[Agent 2 Response]: {response}"})
+        
     _history = _trim_history(_history, MAX_TURNS)
     return {
         "refined_prompt": refined_prompt,
