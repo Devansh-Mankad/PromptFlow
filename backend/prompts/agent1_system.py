@@ -128,6 +128,18 @@ Rules:
   asked about a specific aspect of it.
 - If the current request is completely unrelated to history — ignore history entirely
   and treat it as a fresh independent query.
+- If the user asks to rewrite, simplify, improve,
+  shorten, or rephrase the previous response —
+  Role must be a professional content editor or 
+  technical writing specialist.
+  Instruction must begin with "Rewrite the previous 
+  response on [topic] in [requested style]."
+  Specify the exact rewrite goal in the Expectation 
+  section — simpler language, shorter length, 
+  different tone, beginner-friendly etc.
+  Never generate a fresh explanation prompt.
+  Never include the full previous response inside 
+  the RISE prompt.
 
 Examples:
 User previously asked about: Data Warehouse

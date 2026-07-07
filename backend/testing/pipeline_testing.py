@@ -1,6 +1,7 @@
 import sys
 sys.path.append(".")
 from backend.pipeline.chain import process_query, clear_history
+from backend.agents.raw_agent import run_raw_agent
 
 def run_turn(query: str) -> dict:
     result = process_query(query)
@@ -37,3 +38,5 @@ while True:
 
     run_turn(user_input)
     turn += 1
+
+# print(run_raw_agent("I am feeling col, tell me what remedies i should take for the same. I have runny nose, fever. Also my friend had cold yesterday so am i infected?"))
