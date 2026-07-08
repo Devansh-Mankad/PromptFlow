@@ -1,20 +1,4 @@
 import json
-
-# ────────────────────────────────────────
-# Why this formatting is needed:
-#
-# Your current dataset.json has:
-# {"input": "...", "output": "..."}
-#
-# Unsloth SFTTrainer needs:
-# {"text": "<start_of_turn>user\n...<end_of_turn>\n..."}
-#
-# The special tokens tell Gemma exactly
-# who is speaking in the conversation
-# MUST match how Gemma 3 1B was pretrained
-# Wrong format = model learns nothing ✗
-# ────────────────────────────────────────
-
 INPUT_FILE = "Dataset/training.json"
 OUTPUT_FILE = "Dataset/formatted_training.json"
 
