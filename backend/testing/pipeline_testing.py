@@ -19,24 +19,24 @@ print("PromptFlow Pipeline — Interactive Mode")
 print("Type 'clear' to reset conversation history.")
 print("Type 'exit' to quit.")
 
-turn = 1
-while True:
-    user_input = input(f"\n[Turn {turn}] You: ").strip()
+# turn = 1
+# while True:
+#     user_input = input(f"\n[Turn {turn}] You: ").strip()
 
-    if not user_input:
-        continue
+#     if not user_input:
+#         continue
 
-    if user_input.lower() == "exit":
-        print("Exiting.")
-        break
+#     if user_input.lower() == "exit":
+#         print("Exiting.")
+#         break
 
-    if user_input.lower() == "clear":
-        clear_history()
-        turn = 1
-        print("History cleared. Starting fresh.")
-        continue
+#     if user_input.lower() == "clear":
+#         clear_history()
+#         turn = 1
+#         print("History cleared. Starting fresh.")
+#         continue
 
-    run_turn(user_input)
-    turn += 1
+#     run_turn(user_input)
+#     turn += 1
 
-# print(run_raw_agent("I am feeling col, tell me what remedies i should take for the same. I have runny nose, fever. Also my friend had cold yesterday so am i infected?"))
+print(run_raw_agent("I am feeling col, tell me what remedies i should take for the same. I have runny nose, fever. Also my friend had cold yesterday so am i infected?"))
