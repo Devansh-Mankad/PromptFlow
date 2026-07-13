@@ -73,6 +73,7 @@ test_results/
 outputs/
 temp/
 tmp/
+exports/
 
 agent2_hf.py
 agent1_hf.py
