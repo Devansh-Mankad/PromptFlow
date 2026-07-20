@@ -2,23 +2,15 @@ from llama_cpp import Llama
 import sys
 sys.path.append(".")
 from backend.prompts.raw_system import RAW_SYSTEM_PROMPT
-from backend.config.settings import (
-    AGENT2_MODEL_PATH,
-    AGENT2_LOADING_PARAMS,
-    AGENT2_INFERENCE_PARAMS,
-)
+from backend.config.settings import AGENT2_INFERENCE_PARAMS
+from backend.services.shared_gemma4 import get_shared_model
 
 
 class RawAgent:
     def __init__(self):
-        print("Loading Raw Assistant...")
-        print(f"Model path: {AGENT2_MODEL_PATH}")
-
-        self.model = Llama(
-            model_path=AGENT2_MODEL_PATH,
-            **AGENT2_LOADING_PARAMS
-        )
-        print("Raw Assistant loaded successfully ✓")
+        print("Initializing Raw Assistant...")
+        self.model = get_shared_model()
+        print("Raw Assistant ready ✓")
 
     def _build_prompt(self, user_input: str) -> str:
         return (
@@ -48,10 +40,7 @@ class RawAgent:
         raw = response["choices"][0]["text"]
         return self._clean_output(raw)
 
-
-print("Initializing Raw Assistant...")
 raw_agent_instance = RawAgent()
-
 
 def run_raw_agent(user_input: str) -> str:
     return raw_agent_instance.respond(user_input)

@@ -2,11 +2,8 @@ from llama_cpp import Llama
 import sys
 sys.path.append(".")
 from backend.prompts.agent2_system import AGENT2_SYSTEM_PROMPT
-from backend.config.settings import (
-    AGENT2_MODEL_PATH,
-    AGENT2_LOADING_PARAMS,
-    AGENT2_INFERENCE_PARAMS
-)
+from backend.config.settings import AGENT2_INFERENCE_PARAMS
+from backend.services.shared_gemma4 import get_shared_model
 
 class Agent2:
     """
@@ -17,14 +14,9 @@ class Agent2:
     """
 
     def __init__(self):
-        print("Loading Agent 2 — Gemma 4 E2B...")
-        print(f"Model path: {AGENT2_MODEL_PATH}")
-
-        self.model = Llama(
-            model_path=AGENT2_MODEL_PATH,
-            **AGENT2_LOADING_PARAMS
-        )
-        print("Agent 2 loaded successfully ✓")
+        print("Initializing Agent 2...")
+        self.model = get_shared_model()
+        print("Agent 2 ready ✓")
 
     def _build_prompt(
         self, refined_prompt: str
