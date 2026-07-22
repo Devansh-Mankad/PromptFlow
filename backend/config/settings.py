@@ -38,15 +38,16 @@ AGENT1_LOADING_PARAMS = {
 
 AGENT1_INFERENCE_PARAMS = {
     # Maximum output length (approx. 180-200 words)
-    "max_tokens": 768,
+    "max_tokens": 1024,
     # Controls output randomness
-    "temperature": 0.3,
+    "temperature": 0.2,
     # Uses high-probability token choices for reliable outputs
     "top_p": 0.9,
     # Limits token selection to the top 40 likely candidates
     "top_k": 40,
+    'min_p': 0.05,
     # Slightly reduces repetition in generated text
-    "repeat_penalty": 1.1,
+    "repeat_penalty": 1.2,
     # Stop generation when these tokens are encountered
     "stop": ["<end_of_turn>"],
     # Return only generated text, not the input prompt
