@@ -1,10 +1,7 @@
 import json
-
 from openai import OpenAI
 
-from backend.prompts.judge_system import (
-    JUDGE_SYSTEM_PROMPT
-)
+from backend.prompts.judge_system import JUDGE_SYSTEM_PROMPT
 
 from backend.config.judge_settings import (
     OPENROUTER_API_KEY,
@@ -14,27 +11,15 @@ from backend.config.judge_settings import (
 )
 
 if not OPENROUTER_API_KEY:
-    raise ValueError(
-        "OPENROUTER_API_KEY not found."
-    )
+    raise ValueError("OPENROUTER_API_KEY not found.")
 
-client = OpenAI(
-    api_key=OPENROUTER_API_KEY,
-    base_url=OPENROUTER_BASE_URL
-)
-
+client = OpenAI(api_key=OPENROUTER_API_KEY,base_url=OPENROUTER_BASE_URL)
 
 class JudgeAgent:
     def __init__(self):
         print("Judge Agent Ready ✓")
 
-    def evaluate(
-        self,
-        query: str,
-        direct_response: str,
-        pipeline_response: str,
-    ) -> dict:
-
+    def evaluate(self,query: str,direct_response: str,pipeline_response: str,) -> dict:
         user_prompt = f"""
 User Query:
 {query}
@@ -42,7 +27,7 @@ User Query:
 Direct Response:
 {direct_response}
 
-PromptForge Response:
+PromptFlow Response:
 {pipeline_response}
 """
 
@@ -73,61 +58,31 @@ PromptForge Response:
                 .strip()
             )
 
-            raw = (
-                raw.replace(
-                    "```json",
-                    ""
-                )
-                .replace(
-                    "```",
-                    ""
-                )
-                .strip()
-            )
+            raw = (raw.replace("```json","").replace("```","").strip())
 
             result = json.loads(raw)
 
             left = result["left"]
             right = result["right"]
 
-            left_total = sum(
-                left.values()
-            )
+            left_total = sum(left.values())
 
-            right_total = sum(
-                right.values()
-            )
+            right_total = sum(right.values())
 
             if right_total > left_total:
-                winner = (
-                    "PromptForge Pipeline"
-                )
+                winner = ("PromptFlow Pipeline")
 
             elif left_total > right_total:
-                winner = (
-                    "Direct Response"
-                )
+                winner = ("Direct Response")
 
             else:
-                winner = (
-                    "PromptForge Pipeline"
-                )
+                winner = ("PromptFlow Pipeline")
 
             if left_total == 0:
                 improvement = 0
 
             else:
-                improvement = round(
-                    (
-                        (
-                            right_total
-                            - left_total
-                        )
-                        / left_total
-                    )
-                    * 100,
-                    2
-                )
+                improvement = round(((right_total- left_total) / left_total)* 100,2)
 
             return {
                 "left_metrics": left,
@@ -141,9 +96,7 @@ PromptForge Response:
             }
 
         except Exception as e:
-            print(
-                f"Judge Error: {e}"
-            )
+            print(f"Judge Error: {e}")
 
             return {
                 "left_metrics": {},
@@ -156,13 +109,7 @@ PromptForge Response:
 
 judge_agent = JudgeAgent()
 
-
-def evaluate_responses(
-    query: str,
-    direct_response: str,
-    pipeline_response: str
-) -> dict:
-
+def evaluate_responses(query: str,direct_response: str,pipeline_response: str) -> dict:
     return judge_agent.evaluate(
         query,
         direct_response,
