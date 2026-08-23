@@ -204,6 +204,18 @@ class BatchRunner:
                         batch["results"].append(deepcopy(failure_result))
                         batch["latest_result"] = (deepcopy(failure_result))
 
+                finally:
+                    try:
+                        clear_history(session_id)
+                        print(
+                            f"✓ Session {session_id} "
+                            f"cleared."
+                        )
+
+                    except Exception as cleanup_error:
+                        print("WARNING: Session cleanup failed:",cleanup_error)
+
+
                 if index < total:
                     print(f"\nWaiting "f"{BATCH_PAUSE_SECONDS}s "f"before next query...")
                     for remaining in range(BATCH_PAUSE_SECONDS,0,-1):
