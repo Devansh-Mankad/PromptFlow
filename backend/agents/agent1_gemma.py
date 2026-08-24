@@ -5,6 +5,7 @@ from backend.config.settings import (
     AGENT1_LOADING_PARAMS,
     AGENT1_INFERENCE_PARAMS
 )
+import re
 
 class Agent1:
     """
@@ -62,9 +63,68 @@ class Agent1:
         return prompt
 
     def _clean_output(self, raw_output: str) -> str:
-        output = raw_output.replace("<end_of_turn>", "").strip()
-        output = output.replace("<start_of_turn>", "").strip()
-        return output
+        """
+        Clean Gemma output before sending to Agent 2.
+        """
+        output = raw_output
+        # Remove Gemma chat tokens
+        output = output.replace("<end_of_turn>", "")
+        output = output.replace("<start_of_turn>", "")
+        # Remove markdown code fences
+        output = output.replace("```", "")
+        # Normalize line endings
+        output = output.replace("\r\n", "\n")
+        # Remove trailing whitespace
+        output = "\n".join(line.rstrip() for line in output.splitlines())
+        # Collapse excessive blank lines
+        output = re.sub(r"\n{3,}", "\n\n", output)
+        # Remove unmatched quotes at beginning/end
+        output = output.strip(" '\"")
+        # Remove trailing punctuation that often breaks Agent 2
+        while output.endswith(("'", '"', "`")):
+            output = output[:-1].rstrip()
+        # Ensure output starts with Role:
+        role_index = output.find("Role:")
+        if role_index != -1:
+            output = output[role_index:]
+
+        expectation = output.find("Expectation:")
+        if expectation != -1:
+            lines = output[expectation:].split("\n")
+            cleaned = []
+            for line in lines:
+                cleaned.append(line)
+
+                if len(cleaned) > 2 and line.strip() == "":
+                    break
+
+            output = (output[:expectation]+ "\n".join(cleaned))
+        return output.strip()
+
+    def _validate_output(self, text: str) -> bool:
+        """
+        Basic validation that the RISE prompt is usable.
+        """
+
+        required = [
+            "Role:",
+            "Instruction:",
+            "Expectation:"
+        ]
+
+        for field in required:
+            if field not in text:
+                return False
+
+        # Prevent unfinished outputs
+        if text.endswith(":"):
+            return False
+
+        # Prevent unmatched quote
+        if text.endswith(("'", '"', "`")):
+            return False
+
+        return True
 
     def refine(self, user_input: str, history: list[dict]) -> str:
         """
@@ -77,10 +137,12 @@ class Agent1:
 
         if len(user_input) > 1000:
             raise ValueError("Input too long (max 1000 chars)")
+        
+        print("\n\nUser Query to Agent 1:" , user_input.strip(),history , "\n")
 
         # Build multi-turn prompt
         prompt = self._build_prompt(user_input.strip(), history)
-
+        self.model.reset()
         response = self.model(
             prompt,
             **AGENT1_INFERENCE_PARAMS
@@ -88,6 +150,15 @@ class Agent1:
 
         raw_output = response["choices"][0]["text"]
         refined_prompt = self._clean_output(raw_output)
+        if not self._validate_output(refined_prompt):
+            self.model.reset()
+            response = self.model(
+                prompt,
+                **AGENT1_INFERENCE_PARAMS
+            )
+            raw_output = response["choices"][0]["text"]
+            refined_prompt = self._clean_output(raw_output)
+
         return refined_prompt
 
 
