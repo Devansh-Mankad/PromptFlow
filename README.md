@@ -104,7 +104,7 @@ The refined prompt pipeline should consistently produce responses that are signi
 
 ```bash
 # 1. Clone the repository
-git clone [https://github.com/Devansh-Mankad/promptflow.git](https://github.com/Devansh-Mankad/promptflow.git)
+git clone (https://github.com/Devansh-Mankad/promptflow.git)
 cd promptflow
 
 # 2. Setup Python Virtual Environment
