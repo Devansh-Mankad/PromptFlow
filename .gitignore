@@ -77,7 +77,10 @@ exports/
 
 agent2_hf.py
 agent1_hf.py
+dataset.py
 
 frontend/
 package-lock.json
 package.json
+.deepeval/
+ollama_model/
