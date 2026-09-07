@@ -7,8 +7,8 @@ from backend.agents.agent1_gemma import run_agent1
 def count_tokens(text):
     return len(text.split())
 
-VALIDATION_FILE = "C:/Users/devan/AllProjects/PromptFlow/Dataset/agent1_validation.json"
-OUTPUT_FILE = "C:/Users/devan/AllProjects/PromptFlow/Dataset/agent1_validation_output.json"
+VALIDATION_FILE = "C:/Users/devan/AllProjects/PromptFlow/Dataset/agent1/agent1_validation.json"
+OUTPUT_FILE = "C:/Users/devan/AllProjects/PromptFlow/Dataset/agent1/agent1_validation_output_ethical2.json"
 
 with open(VALIDATION_FILE, "r", encoding="utf-8") as f:
     test_queries = json.load(f)
@@ -29,7 +29,7 @@ for item in test_queries:
             history = []
             turns = []
             for message in item["conversation"]:
-                refined_prompt = run_agent1(message,history)
+                refined_prompt = run_agent1(message)
 
                 turns.append({
                     "user_input": message,
@@ -66,7 +66,7 @@ for item in test_queries:
 
         else:
             user_query = item["query"]
-            refined_prompt = run_agent1(user_query,[])
+            refined_prompt = run_agent1(user_query)
 
             latency = round(time.time() - start_time,2)
             input_tokens = count_tokens(user_query)

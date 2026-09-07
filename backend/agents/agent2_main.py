@@ -57,9 +57,11 @@ class Agent2:
                 "Refined prompt cannot be empty"
             )
 
-        prompt = self._build_prompt(
-            refined_prompt.strip()
-        )
+        print("\n\nAgent1 Prompt:" , refined_prompt.strip() , "\n")
+
+        prompt = self._build_prompt(refined_prompt.strip())
+
+        self.model.reset()
 
         response = self.model(
             prompt,
@@ -71,9 +73,7 @@ class Agent2:
 
 
 # Load once at startup
-print("Initializing Agent 2...")
 agent2_instance = Agent2()
-
 
 def run_agent2(refined_prompt: str) -> str:
     return agent2_instance.respond(refined_prompt)

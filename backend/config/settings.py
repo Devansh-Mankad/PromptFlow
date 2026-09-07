@@ -1,33 +1,33 @@
 from huggingface_hub import hf_hub_download
 
-AGENT1_REPO_ID = "mankadevansh/promptflow-agents"
-AGENT1_FILENAME = "agent1_gemma.gguf"
+# AGENT1_REPO_ID = "mankadevansh/promptflow-agents"
+# AGENT1_FILENAME = "agent1_gemma.gguf"
 
 AGENT2_REPO_ID = "mankadevansh/promptflow-agents"
 AGENT2_FILENAME = "agent2.gguf"
 
-AGENT1_MODEL_PATH = hf_hub_download(
-    repo_id=AGENT1_REPO_ID,
-    filename=AGENT1_FILENAME
-)
+# AGENT1_MODEL_PATH = hf_hub_download(
+#     repo_id=AGENT1_REPO_ID,
+#     filename=AGENT1_FILENAME
+# )
 
 AGENT2_MODEL_PATH = hf_hub_download(
     repo_id=AGENT2_REPO_ID,
     filename=AGENT2_FILENAME
 )
 
-# import os
-# ENV = os.getenv("ENV", "development")
+import os
+ENV = os.getenv("ENV", "development")
 
-# # Model Path
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Model Path
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# AGENT1_MODEL_PATH = os.path.join(BASE_DIR, "models", "agent1_gemma.gguf")
+AGENT1_MODEL_PATH = os.path.join(BASE_DIR, "models", "C:/Users/devan/Downloads/gemma-3-1b-it.Q4_K_M (3).gguf")
 # AGENT2_MODEL_PATH = os.path.join(BASE_DIR, "models", "agent2.gguf")
 
 AGENT1_LOADING_PARAMS = {
     # Context window size for the model
-    "n_ctx": 3072,
+    "n_ctx": 2048,
     # Number of CPU threads used for inference
     "n_threads": 4,
     # Number of tokens processed in one batch
@@ -37,20 +37,13 @@ AGENT1_LOADING_PARAMS = {
 }
 
 AGENT1_INFERENCE_PARAMS = {
-    # Maximum output length (approx. 180-200 words)
-    "max_tokens": 1024,
-    # Controls output randomness
-    "temperature": 0.2,
-    # Uses high-probability token choices for reliable outputs
-    "top_p": 0.9,
-    # Limits token selection to the top 40 likely candidates
+    "max_tokens": 480,
+    "temperature": 0.20,
+    "top_p": 0.90,
     "top_k": 40,
-    'min_p': 0.05,
-    # Slightly reduces repetition in generated text
-    "repeat_penalty": 1.2,
-    # Stop generation when these tokens are encountered
-    "stop": ["<end_of_turn>"],
-    # Return only generated text, not the input prompt
+    "min_p": 0.05,
+    "repeat_penalty": 1.02,
+    "stop": ["<end_of_turn>", "<eos>"],
     "echo": False,
 }
 
@@ -66,18 +59,11 @@ AGENT2_LOADING_PARAMS = {
 }
 
 AGENT2_INFERENCE_PARAMS = {
-    # Maximum output length (approx. 700-800 words)
     "max_tokens": 3072,
-    # Controls output randomness; 0.7 provides a balance between consistency and creativity
-    "temperature": 0.7,
-    # Uses high-probability token choices for reliable outputs
-    "top_p": 0.90,
-    # Limits token selection to the top 40 likely candidates
-    "top_k": 40,
-    # Slightly reduces repetition in generated text
-    "repeat_penalty": 1.15,
-    # Stop generation when these tokens are encountered
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "top_k": 0,
+    "repeat_penalty": 1.0,
     "stop": ["<end_of_turn>"],
-    # Return only generated text, not the input prompt
     "echo": False,
 }

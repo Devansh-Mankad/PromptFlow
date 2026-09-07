@@ -31,6 +31,8 @@ PromptFlow Response:
 {pipeline_response}
 """
 
+        print("\n\nJudge Prompt:" , user_prompt , "\n")
+
         try:
             response = (
                 client.chat.completions.create(
@@ -59,14 +61,12 @@ PromptFlow Response:
             )
 
             raw = (raw.replace("```json","").replace("```","").strip())
-
             result = json.loads(raw)
 
             left = result["left"]
             right = result["right"]
 
             left_total = sum(left.values())
-
             right_total = sum(right.values())
 
             if right_total > left_total:
@@ -76,7 +76,7 @@ PromptFlow Response:
                 winner = ("Direct Response")
 
             else:
-                winner = ("PromptFlow Pipeline")
+                winner = ("Equivalent Performance")
 
             if left_total == 0:
                 improvement = 0

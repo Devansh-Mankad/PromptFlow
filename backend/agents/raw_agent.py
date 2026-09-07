@@ -31,7 +31,10 @@ class RawAgent:
         if not user_input or not user_input.strip():
             raise ValueError("User input cannot be empty.")
 
+        print("\n\nLeft Panel Query:" , user_input.strip() , "\n")
+
         prompt = self._build_prompt(user_input.strip())
+        self.model.reset()
         response = self.model(
             prompt,
             **AGENT2_INFERENCE_PARAMS

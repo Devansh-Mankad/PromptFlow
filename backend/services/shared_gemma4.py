@@ -13,6 +13,5 @@ shared_gemma4 = Llama(
 
 print("Shared Gemma 4 loaded successfully ✓")
 
-
 def get_shared_model():
     return shared_gemma4

@@ -24,7 +24,8 @@ class BatchRunner:
             "total_queries": len(queries),
             "latest_result": None,
             "countdown": 0,
-            "csv_path": None
+            "csv_path": None,
+            "session_id": str(uuid.uuid4())
         }
 
         thread = threading.Thread(
@@ -39,50 +40,33 @@ class BatchRunner:
     def _run_batch(self, batch_id: str):
         batch = self.batches[batch_id]
         batch["status"] = "Running"
+        session_id = batch["session_id"]
 
         try:
-            for index, query in enumerate(batch["queries"], start=1):
+            for index, query in enumerate(
+                batch["queries"],
+                start=1
+            ):
                 batch["current_index"] = index
-                session_id = str(uuid.uuid4())
-
                 direct_start = time.time()
                 direct_response = run_raw_agent(query)
-                direct_time = round(time.time() - direct_start, 2)
-
+                direct_time = round(time.time() - direct_start,2)
                 direct_words = len(direct_response.split())
                 direct_tokens = int(direct_words * 1.3)
 
                 pipeline_start = time.time()
                 pipeline_result = process_query(session_id,query)
-                pipeline_time = round(
-                    time.time() - pipeline_start,
-                    2
-                )
+                pipeline_time = round(time.time() - pipeline_start,2)
+                pipeline_words = len(pipeline_result["response"].split())
+                pipeline_tokens = int(pipeline_words * 1.3)
 
-                pipeline_words = len(
-                    pipeline_result["response"].split()
-                )
-
-                pipeline_tokens = int(
-                    pipeline_words * 1.3
-                )
-
-                judge_result = evaluate_responses(
-                    query,
-                    direct_response,
-                    pipeline_result["response"]
-                )
+                judge_result = evaluate_responses(query,direct_response,pipeline_result["response"])
 
                 result = {
                     "query": query,
-
                     "direct_response": direct_response,
-
-                    "refined_prompt":
-                    pipeline_result["refined_prompt"],
-
-                    "pipeline_response":
-                    pipeline_result["response"],
+                    "refined_prompt":pipeline_result["refined_prompt"],
+                    "pipeline_response":pipeline_result["response"],
 
                     "direct_stats": {
                         "words": direct_words,
@@ -103,19 +87,12 @@ class BatchRunner:
                 batch["results"].append(result)
 
                 if index < len(batch["queries"]):
-                    for sec in range(
-                        BATCH_PAUSE_SECONDS,
-                        0,
-                        -1
-                    ):
+                    for sec in range(BATCH_PAUSE_SECONDS,0,-1):
                         batch["countdown"] = sec
                         time.sleep(1)
-
                 batch["countdown"] = 0
 
-            csv_path = csv_service.create_batch_report(
-                batch["results"]
-            )
+            csv_path = csv_service.create_batch_report(batch["results"])
 
             batch["csv_path"] = csv_path
             batch["status"] = "Completed"
@@ -124,6 +101,7 @@ class BatchRunner:
         except Exception as e:
             batch["status"] = "Failed"
             batch["error"] = str(e)
+            batch["countdown"] = 0
 
     def get_status(self, batch_id: str):
         return self.batches.get(batch_id)
