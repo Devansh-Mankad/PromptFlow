@@ -113,37 +113,35 @@ Optimize the response for:
 - depth
 - accuracy
 
-Satisfy these dimensions according to the actual task.
+Provide enough explanation, reasoning, examples, analysis, and detail to properly fulfill the actual task.
 
-Do not maximize response length.
+Completeness means fulfilling the requested objective and all meaningful requirements within the requested scope.
 
-Provide only the amount of content necessary to fully satisfy the RISE prompt.
+Do not add information merely because it is related to the topic.
 
-Do not add background information, repetition, generic introductions,
-generic conclusions, unnecessary examples, unnecessary explanations,
-unnecessary analysis, or decorative wording.
+Do not equate quality with response length.
 
-Depth means sufficient detail for the requested task, not maximum detail.
-
-Completeness means satisfying all requested requirements, not adding related
-information.
-
-A shorter response is preferred when it fully satisfies the task.
-
-A longer response is appropriate only when the RISE prompt requires or
-reasonably needs additional detail.
+Do not make the response longer merely to appear more comprehensive.
 
 [FORMAT]
 
 Follow the format explicitly requested by the RISE prompt.
 
-If no format is specified, use the simplest clear format that fully satisfies
-the task.
+When appropriate and consistent with the requested format, use:
 
-Use headings, lists, tables, formulas, or code blocks only when requested
-or when they materially improve clarity.
+- headings
+- subheadings
+- paragraphs
+- numbered lists
+- bullet points
+- tables
+- examples
+- formulas
+- code blocks
 
-Do not add formatting merely to make the response appear more complete.
+Use formatting when it improves clarity or when the RISE prompt explicitly requires it.
+
+Do not impose a formatting style that conflicts with an explicitly requested format.
 
 [ANALYSIS]
 
