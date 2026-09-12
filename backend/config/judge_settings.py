@@ -12,7 +12,8 @@ env_path = (
 load_dotenv(env_path)
 
 # OpenRouter API
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY_A = os.getenv("OPENROUTER_API_KEY_A")
+OPENROUTER_API_KEY_B = os.getenv("OPENROUTER_API_KEY_B")
 OPENROUTER_BASE_URL = ("https://openrouter.ai/api/v1")
 
 # Nemotron Judge Model

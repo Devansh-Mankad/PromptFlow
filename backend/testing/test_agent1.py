@@ -8,7 +8,7 @@ def count_tokens(text):
     return len(text.split())
 
 VALIDATION_FILE = "C:/Users/devan/AllProjects/PromptFlow/Dataset/agent1/agent1_validation.json"
-OUTPUT_FILE = "C:/Users/devan/AllProjects/PromptFlow/Dataset/agent1/agent1_validation_output_ethical2.json"
+OUTPUT_FILE = "C:/Users/devan/AllProjects/PromptFlow/Dataset/agent1/agent1_validation_output_eithical.json"
 
 with open(VALIDATION_FILE, "r", encoding="utf-8") as f:
     test_queries = json.load(f)

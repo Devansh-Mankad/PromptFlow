@@ -1,153 +1,246 @@
-from llama_cpp import Llama
-from backend.prompts.agent1_system import AGENT1_SYSTEM_PROMPT
-from backend.config.settings import (
-    AGENT1_MODEL_PATH,
-    AGENT1_LOADING_PARAMS,
-    AGENT1_INFERENCE_PARAMS
-)
 import re
+import requests
+
+from backend.config.settings import (
+    OLLAMA_HOST,
+    AGENT1_OLLAMA_MODEL
+)
+
 
 class Agent1:
     """
     PromptFlow Agent 1 — Prompt Refiner
-    Loads fine-tuned Gemma 3 1B GGUF model
-    Converts messy user input to RISE format
+
+    Uses Ollama to run the fine-tuned Gemma 3 1B GGUF model.
+
+    System prompt and inference parameters
+    are configured entirely in the Ollama Modelfile.
     """
 
     def __init__(self):
-        self.model = None
-
-    def _load_model(self):
-        print("Loading Agent 1 — Gemma 3 1B...")
-        print(f"Model path: {AGENT1_MODEL_PATH}")
-
-        self.model = Llama(
-            model_path=AGENT1_MODEL_PATH,
-            **AGENT1_LOADING_PARAMS
-        )
-
-        print("Agent 1 loaded successfully!\n")
-
-    def _unload_model(self):
-        if self.model is not None:
-            del self.model
-            self.model = None
-
-    def _build_prompt(self,user_input: str) -> str:
-        prompt = (
-            f"<start_of_turn>system\n"
-            f"{AGENT1_SYSTEM_PROMPT}<end_of_turn>\n"
-        )
-
-        prompt += (
-            f"<start_of_turn>user\n"
-            f"{user_input}<end_of_turn>\n"
-            f"<start_of_turn>model\n"
-        )
-
-        return prompt
+        self.ollama_url = f"{OLLAMA_HOST}/api/chat"
 
     def _clean_output(self, raw_output: str) -> str:
         """
-        Clean Gemma output before sending to Agent 2.
+        Remove only unwanted model artifacts.
+        Do not modify the actual RISE content.
         """
-        output = raw_output
-        output = output.replace("<end_of_turn>", "")
+
+        output = raw_output.strip()
+
+        # Remove model special tokens
         output = output.replace("<start_of_turn>", "")
+        output = output.replace("<end_of_turn>", "")
+        output = output.replace("<eos>", "")
+
+        # Remove markdown fences only
+        output = output.replace("```text", "")
         output = output.replace("```", "")
+
+        # Normalize line endings
         output = output.replace("\r\n", "\n")
-        output = "\n".join(line.rstrip() for line in output.splitlines())
+
+        # Remove trailing spaces
+        output = "\n".join(
+            line.rstrip()
+            for line in output.splitlines()
+        )
+
+        # Collapse excessive blank lines
         output = re.sub(r"\n{3,}", "\n\n", output)
-        output = output.strip(" '\"")
 
-        while output.endswith(("'", '"', "`")):
-            output = output[:-1].rstrip()
+        # If model added text before Role:
+        role_match = re.search(
+            r"(?m)^Role:\s*",
+            output
+        )
 
-        role_index = output.find("Role:")
-        if role_index != -1:
-            output = output[role_index:]
-
-        expectation = output.find("Expectation:")
-        if expectation != -1:
-            lines = output[expectation:].split("\n")
-            cleaned = []
-
-            for line in lines:
-                cleaned.append(line)
-
-                if len(cleaned) > 2 and line.strip() == "":
-                    break
-
-            output = (output[:expectation] + "\n".join(cleaned))
+        if role_match:
+            output = output[role_match.start():]
 
         return output.strip()
 
     def _validate_output(self, text: str) -> bool:
         """
-        Basic validation that the RISE prompt is usable.
+        Strict validation of RISE structure.
         """
 
-        required = [
+        if not text:
+            return False
+
+        # Required sections
+        pattern = re.compile(
+            r"^Role:\s*.+?"
+            r"\nInstruction:\s*.+?"
+            r"\nSteps:\s*.+?"
+            r"\nExpectation:\s*.+$",
+            re.DOTALL
+        )
+
+        if not pattern.match(text):
+            return False
+
+        # Count sections exactly once
+        sections = [
             "Role:",
             "Instruction:",
+            "Steps:",
             "Expectation:"
         ]
 
-        for field in required:
-            if field not in text:
+        for section in sections:
+            if text.count(section) != 1:
                 return False
 
-        if text.endswith(":"):
+        # Make sure correct order is preserved
+        positions = [
+            text.find("Role:"),
+            text.find("Instruction:"),
+            text.find("Steps:"),
+            text.find("Expectation:")
+        ]
+
+        if positions != sorted(positions):
             return False
 
-        if text.endswith(("'", '"', "`")):
+        # Must start with Role:
+        if not text.startswith("Role:"):
+            return False
+
+        # Must not end with a section heading
+        if text.rstrip().endswith(
+            ("Role:", "Instruction:", "Steps:", "Expectation:")
+        ):
+            return False
+
+        # Avoid obvious unfinished output
+        if text.rstrip().endswith(("'", '"', "`")):
             return False
 
         return True
 
+    def _generate(
+        self,
+        user_input: str,
+        retry: bool = False
+    ) -> str:
+        """
+        Send request to Ollama.
+
+        System prompt and inference parameters
+        are handled entirely by the Modelfile.
+        """
+
+        if retry:
+            content = (
+                f"{user_input}\n\n"
+                "Rewrite this as a valid RISE prompt. "
+                "Return only Role, Instruction, Steps, and Expectation. "
+                "Do not answer the query or add information."
+            )
+        else:
+            content = user_input
+
+        payload = {
+            "model": AGENT1_OLLAMA_MODEL,
+
+            "messages": [
+                {
+                    "role": "user",
+                    "content": content
+                }
+            ],
+
+            "stream": False,
+            "think": False,
+
+            # Unload model after generation
+            "keep_alive": 0
+        }
+
+        response = requests.post(
+            self.ollama_url,
+            json=payload,
+            timeout=300
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        return data["message"]["content"]
+
     def refine(self, user_input: str) -> str:
         """
         Main refinement function.
-        Takes raw user input.
-        Returns RISE formatted refined prompt.
+
+        Takes raw user input and returns
+        a validated RISE prompt.
         """
+
         if not user_input or not user_input.strip():
             raise ValueError("Input cannot be empty")
 
         if len(user_input) > 1000:
-            raise ValueError("Input too long (max 1000 chars)")
-
-        print("\n\nUser Query to Agent 1:", user_input.strip(), "\n")
-
-        self._load_model()
-
-        print("\nCache Cleared!\n")
-        self.model.reset()
-
-        try:
-            prompt = self._build_prompt(user_input.strip())
-            response = self.model(
-                prompt,
-                **AGENT1_INFERENCE_PARAMS
+            raise ValueError(
+                "Input too long (max 1000 chars)"
             )
 
-            raw_output = response["choices"][0]["text"]
-            refined_prompt = self._clean_output(raw_output)
+        user_input = user_input.strip()
 
-            if not self._validate_output(refined_prompt):
-                response = self.model(
-                    prompt,
-                    **AGENT1_INFERENCE_PARAMS
-                )
+        print(
+            "\n\nUser Query to Agent 1:",
+            user_input,
+            "\n"
+        )
 
-                raw_output = response["choices"][0]["text"]
-                refined_prompt = self._clean_output(raw_output)
+        print("Sending request to Ollama...")
 
-            return refined_prompt
+        try:
+            # -------------------------
+            # ATTEMPT 1
+            # -------------------------
 
-        finally:
-            self._unload_model()
-            print("Model Unloaded!\n")
+            raw_output = self._generate(
+                user_input,
+                retry=False
+            )
+
+            refined_prompt = self._clean_output(
+                raw_output
+            )
+
+            if self._validate_output(refined_prompt):
+                return refined_prompt
+
+            print("Agent 1 output invalid.")
+            print("Retrying with format correction...")
+
+            # -------------------------
+            # ATTEMPT 2
+            # -------------------------
+
+            raw_output = self._generate(
+                user_input,
+                retry=True
+            )
+
+            refined_prompt = self._clean_output(
+                raw_output
+            )
+
+            if self._validate_output(refined_prompt):
+                return refined_prompt
+
+            raise ValueError(
+                "Agent 1 produced an invalid RISE prompt "
+                "after retry."
+            )
+
+        except requests.exceptions.RequestException as e:
+            raise RuntimeError(
+                f"Ollama request failed: {e}"
+            ) from e
 
 
 agent1_instance = Agent1()

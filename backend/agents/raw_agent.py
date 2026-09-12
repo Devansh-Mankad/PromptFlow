@@ -1,49 +1,93 @@
-from llama_cpp import Llama
-import sys
-sys.path.append(".")
+import requests
+
 from backend.prompts.raw_system import RAW_SYSTEM_PROMPT
-from backend.config.settings import AGENT2_INFERENCE_PARAMS
-from backend.services.shared_gemma4 import get_shared_model
+from backend.config.settings import AGENT2_OLLAMA_MODEL
 
 
 class RawAgent:
+    """
+    PromptFlow Raw Agent
+
+    Sends the original user query directly to
+    Gemma 4 E2B through Ollama.
+
+    This is the baseline path used for comparison
+    against the Agent 1 → Agent 2 pipeline.
+
+    System prompt and inference parameters are
+    controlled by the Ollama Modelfile.
+    """
+
+    OLLAMA_URL = "http://localhost:11434/api/chat"
+    REQUEST_TIMEOUT = 300
+
     def __init__(self):
         print("Initializing Raw Assistant...")
-        self.model = get_shared_model()
+        print(f"Ollama model: {AGENT2_OLLAMA_MODEL}")
         print("Raw Assistant ready ✓")
 
-    def _build_prompt(self, user_input: str) -> str:
-        return (
-            f"<start_of_turn>system\n"
-            f"{RAW_SYSTEM_PROMPT}<end_of_turn>\n"
-            f"<start_of_turn>user\n"
-            f"{user_input}<end_of_turn>\n"
-            f"<start_of_turn>model\n"
+    def _clean_output(self, raw: str) -> str:
+        output = raw.strip()
+
+        output = output.replace(
+            "<end_of_turn>",
+            ""
         )
 
-    def _clean_output(self, raw: str) -> str:
-        output = raw.replace("<end_of_turn>", "").strip()
+        output = output.replace(
+            "<start_of_turn>",
+            ""
+        )
 
-        output = output.replace("<start_of_turn>", "").strip()
-        return output
+        return output.strip()
 
     def respond(self, user_input: str) -> str:
         if not user_input or not user_input.strip():
             raise ValueError("User input cannot be empty.")
 
-        print("\n\nLeft Panel Query:" , user_input.strip() , "\n")
+        user_input = user_input.strip()
 
-        prompt = self._build_prompt(user_input.strip())
-        self.model.reset()
-        response = self.model(
-            prompt,
-            **AGENT2_INFERENCE_PARAMS
+        print("\n\nLeft Panel Query:", user_input, "\n")
+
+        payload = {
+            "model": AGENT2_OLLAMA_MODEL,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": RAW_SYSTEM_PROMPT
+                },
+                {
+                    "role": "user",
+                    "content": user_input
+                }
+            ],
+            "stream": False,
+            "think": False,
+            "keep_alive": 0
+        }
+
+        response = requests.post(
+            self.OLLAMA_URL,
+            json=payload,
+            timeout=self.REQUEST_TIMEOUT
         )
 
-        raw = response["choices"][0]["text"]
+        response.raise_for_status()
+
+        data = response.json()
+
+        try:
+            raw = data["message"]["content"]
+        except (KeyError, TypeError) as exc:
+            raise RuntimeError(
+                "Invalid response received from Ollama."
+            ) from exc
+
         return self._clean_output(raw)
 
+
 raw_agent_instance = RawAgent()
+
 
 def run_raw_agent(user_input: str) -> str:
     return raw_agent_instance.respond(user_input)

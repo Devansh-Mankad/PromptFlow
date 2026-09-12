@@ -1,78 +1,83 @@
-from llama_cpp import Llama
-import sys
-sys.path.append(".")
+import requests
+
 from backend.prompts.agent2_system import AGENT2_SYSTEM_PROMPT
-from backend.config.settings import AGENT2_INFERENCE_PARAMS
-from backend.services.shared_gemma4 import get_shared_model
+from backend.config.settings import (
+    AGENT2_OLLAMA_MODEL,
+    OLLAMA_HOST
+)
+
 
 class Agent2:
     """
-    PromptForge Agent 2 — Response Generator
-    Loads Gemma 4 E2B QAT GGUF model
-    Receives RISE refined prompt from Agent 1
-    Generates high quality final response
+    PromptFlow Agent 2 — Response Generator
+
+    Uses Gemma 4 E2B through Ollama.
+    Receives the refined RISE prompt from Agent 1
+    and generates the final response.
+
+    Inference parameters are configured
+    in the Ollama Modelfile.
     """
 
     def __init__(self):
         print("Initializing Agent 2...")
-        self.model = get_shared_model()
+        print(f"Ollama model: {AGENT2_OLLAMA_MODEL}")
         print("Agent 2 ready ✓")
 
-    def _build_prompt(
-        self, refined_prompt: str
-    ) -> str:
-        """
-        Build Gemma 4 chat template prompt.
-        System prompt sets Agent 2 behavior.
-        Refined RISE prompt is user turn.
-        Model generates final response.
-        """
-        return (
-            f"<start_of_turn>system\n"
-            f"{AGENT2_SYSTEM_PROMPT}<end_of_turn>\n"
-            f"<start_of_turn>user\n"
-            f"{refined_prompt}<end_of_turn>\n"
-            f"<start_of_turn>model\n"
-        )
-
-    def _clean_output(self, raw: str) -> str:
-        """Clean special tokens from output"""
-        output = raw.replace(
-            "<end_of_turn>", ""
-        ).strip()
-        output = output.replace(
-            "<start_of_turn>", ""
-        ).strip()
-        return output
-
     def respond(self, refined_prompt: str) -> str:
-        """
-        Generate final response.
-        Takes RISE format prompt from Agent 1.
-        Returns complete high quality answer.
-        """
-        if not refined_prompt or \
-           not refined_prompt.strip():
-            raise ValueError(
-                "Refined prompt cannot be empty"
-            )
+        if not refined_prompt or not refined_prompt.strip():
+            raise ValueError("Refined prompt cannot be empty")
 
-        print("\n\nAgent1 Prompt:" , refined_prompt.strip() , "\n")
+        refined_prompt = refined_prompt.strip()
 
-        prompt = self._build_prompt(refined_prompt.strip())
+        print("\n\nAgent 1 Prompt:", refined_prompt, "\n")
 
-        self.model.reset()
+        payload = {
+            "model": AGENT2_OLLAMA_MODEL,
 
-        response = self.model(
-            prompt,
-            **AGENT2_INFERENCE_PARAMS
+            "messages": [
+                {
+                    "role": "system",
+                    "content": AGENT2_SYSTEM_PROMPT
+                },
+                {
+                    "role": "user",
+                    "content": refined_prompt
+                }
+            ],
+
+            "stream": False,
+            "think": False
+        }
+
+        response = requests.post(
+            f"{OLLAMA_HOST}/api/chat",
+            json=payload,
+            timeout=300
         )
 
-        raw = response["choices"][0]["text"]
+        response.raise_for_status()
+
+        data = response.json()
+
+        raw = data["message"]["content"]
+
         return self._clean_output(raw)
 
+    def _clean_output(self, raw: str) -> str:
+        output = raw.replace(
+            "<end_of_turn>",
+            ""
+        ).strip()
 
-# Load once at startup
+        output = output.replace(
+            "<start_of_turn>",
+            ""
+        ).strip()
+
+        return output
+
+
 agent2_instance = Agent2()
 
 def run_agent2(refined_prompt: str) -> str:
