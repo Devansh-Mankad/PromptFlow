@@ -1,42 +1,28 @@
 import json
 from openai import OpenAI
+
 from backend.prompts.judge_system import JUDGE_SYSTEM_PROMPT
-from backend.config.judge_settings import (
-    OPENROUTER_API_KEY_A,
-    OPENROUTER_API_KEY_B,
-    OPENROUTER_BASE_URL,
+from backend.config.ollama_settings import (
+    OLLAMA_BASE_URL,
     JUDGE_MODEL,
     REQUEST_TIMEOUT,
+    TEMPERATURE,
+    TOP_P,
 )
 
-if not OPENROUTER_API_KEY_A:
-    raise ValueError("OPENROUTER_API_KEY_A not found.")
-if not OPENROUTER_API_KEY_B:
-    raise ValueError("OPENROUTER_API_KEY_B not found.")
-
-# Two independent OpenRouter clients
-client_a = OpenAI(
-    api_key=OPENROUTER_API_KEY_A,
-    base_url=OPENROUTER_BASE_URL
+# Ollama OpenAI-compatible client
+client = OpenAI(
+    base_url=OLLAMA_BASE_URL,
+    api_key="ollama"
 )
-
-client_b = OpenAI(
-    api_key=OPENROUTER_API_KEY_B,
-    base_url=OPENROUTER_BASE_URL
-)
-
 
 class JudgeAgent:
     def __init__(self):
         print("Judge Agent Ready ✓")
+        print(f"Judge Provider: Ollama Cloud")
+        print(f"Judge Model: {JUDGE_MODEL}")
 
-    def evaluate(
-        self,
-        query: str,
-        direct_response: str,
-        pipeline_response: str,
-        query_index: int = 0
-    ) -> dict:
+    def evaluate(self,query: str,direct_response: str,pipeline_response: str,query_index: int = 0) -> dict:
 
         user_prompt = f"""
 User Query:
@@ -50,20 +36,15 @@ PromptFlow Response:
 """
 
         print("\n\nJudge Prompt:", user_prompt, "\n")
-        if query_index % 2 == 0:
-            client = client_a
-            api_name = "API A"
-        else:
-            client = client_b
-            api_name = "API B"
-
-        print(f"Judge using {api_name}...")
+        print("Judge using Ollama Cloud...")
+        print(f"Model: {JUDGE_MODEL}")
 
         try:
 
             response = client.chat.completions.create(
                 model=JUDGE_MODEL,
-                temperature=0,
+                temperature=TEMPERATURE,
+                top_p=TOP_P,
                 messages=[
                     {
                         "role": "system",
@@ -76,33 +57,17 @@ PromptFlow Response:
                 ],
                 timeout=REQUEST_TIMEOUT
             )
+            actual_model = getattr(response,"model",JUDGE_MODEL)
+            print(f"Requested model: {JUDGE_MODEL}")
+            print(f"Actual model used: {actual_model}")
 
-            # Check provider error "NoneType" Object Error"
-            if getattr(response, "error", None):
-                error_info = response.error
-                error_message = (
-                    error_info.get("message", "Unknown provider error")
-                    if isinstance(error_info, dict)
-                    else str(error_info)
-                )
-
-                error_code = (
-                    error_info.get("code", "unknown")
-                    if isinstance(error_info, dict)
-                    else "unknown"
-                )
-
-                raise RuntimeError(
-                    f"{api_name} provider error "
-                    f"(code {error_code}): {error_message}"
-                )
 
             if not response.choices:
-                raise RuntimeError(f"{api_name} returned no response choices.")
+                raise RuntimeError("Ollama returned no response choices.")
 
             raw = response.choices[0].message.content
             if not raw:
-                raise RuntimeError(f"{api_name} returned empty judge content.")
+                raise RuntimeError("Ollama returned empty judge content.")
 
             raw = raw.strip()
             if raw.startswith("```json"):
@@ -111,21 +76,24 @@ PromptFlow Response:
                 raw = raw[3:]
             if raw.endswith("```"):
                 raw = raw[:-3]
-
             raw = raw.strip()
+
             try:
                 result = json.loads(raw)
             except json.JSONDecodeError as e:
-                raise RuntimeError(f"{api_name} returned invalid JSON: {e}")
+                raise RuntimeError(
+                    f"Ollama returned invalid JSON: {e}\n"
+                    f"Raw response:\n{raw}"
+                )
 
             if "left" not in result:
-                raise RuntimeError(f"{api_name} response missing 'left' metrics.")
+                raise RuntimeError("Ollama response missing 'left' metrics.")
+
             if "right" not in result:
-                raise RuntimeError(f"{api_name} response missing 'right' metrics.")
+                raise RuntimeError("Ollama response missing 'right' metrics.")
 
             left = result["left"]
             right = result["right"]
-
             required_metrics = [
                 "relevance",
                 "clarity",
@@ -138,13 +106,13 @@ PromptFlow Response:
             for metric in required_metrics:
                 if metric not in left:
                     raise RuntimeError(
-                        f"{api_name} response missing "
+                        f"Ollama response missing "
                         f"left metric: {metric}"
                     )
 
                 if metric not in right:
                     raise RuntimeError(
-                        f"{api_name} response missing "
+                        f"Ollama response missing "
                         f"right metric: {metric}"
                     )
 
@@ -165,6 +133,7 @@ PromptFlow Response:
             else:
                 winner = "Equivalent Performance"
 
+
             if left_total == 0:
                 improvement = 0
             else:
@@ -175,13 +144,18 @@ PromptFlow Response:
                 "right_metrics": right,
                 "winner": winner,
                 "overall_improvement": improvement,
-                "reason": result.get("reason", ""),
-                "judge_api": api_name
+                "reason": result.get("reason",""),
+                "judge_api": "Ollama Cloud",
+                "requested_model": JUDGE_MODEL,
+                "actual_model": actual_model
             }
 
         except Exception as e:
             error_message = str(e)
-            print(f"Judge Error [{api_name}]: " f"{error_message}")
+            print(
+                f"Judge Error [Ollama Cloud]: "
+                f"{error_message}"
+            )
 
             return {
                 "left_metrics": {},
@@ -189,9 +163,21 @@ PromptFlow Response:
                 "winner": "Judge Failed",
                 "overall_improvement": 0,
                 "reason": error_message,
-                "judge_api": api_name
+                "judge_api": "Ollama Cloud",
+                "requested_model": JUDGE_MODEL
             }
 
 judge_agent = JudgeAgent()
-def evaluate_responses(query: str,direct_response: str,pipeline_response: str,query_index: int = 0) -> dict:
-    return judge_agent.evaluate(query=query,direct_response=direct_response,pipeline_response=pipeline_response,query_index=query_index)
+
+def evaluate_responses(
+    query: str,
+    direct_response: str,
+    pipeline_response: str,
+    query_index: int = 0
+) -> dict:
+    return judge_agent.evaluate(
+        query=query,
+        direct_response=direct_response,
+        pipeline_response=pipeline_response,
+        query_index=query_index
+    )

@@ -1,7 +1,13 @@
 import requests
-
-from backend.prompts.agent2_system import AGENT2_SYSTEM_PROMPT
-from backend.config.settings import (
+import sys
+import os
+sys.path.append(
+    os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+)
+from prompts.agent2_system import AGENT2_SYSTEM_PROMPT
+from config.settings import (
     AGENT2_OLLAMA_MODEL,
     OLLAMA_HOST
 )

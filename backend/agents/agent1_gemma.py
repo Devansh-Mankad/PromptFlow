@@ -1,18 +1,14 @@
 import re
 import requests
-
 from backend.config.settings import (
     OLLAMA_HOST,
     AGENT1_OLLAMA_MODEL
 )
 
-
 class Agent1:
     """
     PromptFlow Agent 1 — Prompt Refiner
-
     Uses Ollama to run the fine-tuned Gemma 3 1B GGUF model.
-
     System prompt and inference parameters
     are configured entirely in the Ollama Modelfile.
     """
@@ -25,50 +21,33 @@ class Agent1:
         Remove only unwanted model artifacts.
         Do not modify the actual RISE content.
         """
-
         output = raw_output.strip()
-
-        # Remove model special tokens
         output = output.replace("<start_of_turn>", "")
         output = output.replace("<end_of_turn>", "")
         output = output.replace("<eos>", "")
 
-        # Remove markdown fences only
         output = output.replace("```text", "")
         output = output.replace("```", "")
 
-        # Normalize line endings
         output = output.replace("\r\n", "\n")
-
-        # Remove trailing spaces
         output = "\n".join(
             line.rstrip()
             for line in output.splitlines()
         )
 
-        # Collapse excessive blank lines
         output = re.sub(r"\n{3,}", "\n\n", output)
-
-        # If model added text before Role:
-        role_match = re.search(
-            r"(?m)^Role:\s*",
-            output
-        )
-
+        role_match = re.search(r"(?m)^Role:\s*",output)
         if role_match:
             output = output[role_match.start():]
-
         return output.strip()
 
     def _validate_output(self, text: str) -> bool:
         """
         Strict validation of RISE structure.
         """
-
         if not text:
             return False
 
-        # Required sections
         pattern = re.compile(
             r"^Role:\s*.+?"
             r"\nInstruction:\s*.+?"
@@ -80,7 +59,6 @@ class Agent1:
         if not pattern.match(text):
             return False
 
-        # Count sections exactly once
         sections = [
             "Role:",
             "Instruction:",
@@ -92,7 +70,6 @@ class Agent1:
             if text.count(section) != 1:
                 return False
 
-        # Make sure correct order is preserved
         positions = [
             text.find("Role:"),
             text.find("Instruction:"),
@@ -102,35 +79,20 @@ class Agent1:
 
         if positions != sorted(positions):
             return False
-
-        # Must start with Role:
         if not text.startswith("Role:"):
             return False
-
-        # Must not end with a section heading
-        if text.rstrip().endswith(
-            ("Role:", "Instruction:", "Steps:", "Expectation:")
-        ):
+        if text.rstrip().endswith(("Role:", "Instruction:", "Steps:", "Expectation:")):
             return False
-
-        # Avoid obvious unfinished output
         if text.rstrip().endswith(("'", '"', "`")):
             return False
-
         return True
 
-    def _generate(
-        self,
-        user_input: str,
-        retry: bool = False
-    ) -> str:
+    def _generate(self,user_input: str,retry: bool = False) -> str:
         """
         Send request to Ollama.
-
         System prompt and inference parameters
         are handled entirely by the Modelfile.
         """
-
         if retry:
             content = (
                 f"{user_input}\n\n"
@@ -143,18 +105,14 @@ class Agent1:
 
         payload = {
             "model": AGENT1_OLLAMA_MODEL,
-
             "messages": [
                 {
                     "role": "user",
                     "content": content
                 }
             ],
-
             "stream": False,
             "think": False,
-
-            # Unload model after generation
             "keep_alive": 0
         }
 
@@ -165,9 +123,7 @@ class Agent1:
         )
 
         response.raise_for_status()
-
         data = response.json()
-
         return data["message"]["content"]
 
     def refine(self, user_input: str) -> str:
@@ -197,10 +153,6 @@ class Agent1:
         print("Sending request to Ollama...")
 
         try:
-            # -------------------------
-            # ATTEMPT 1
-            # -------------------------
-
             raw_output = self._generate(
                 user_input,
                 retry=False
@@ -215,10 +167,6 @@ class Agent1:
 
             print("Agent 1 output invalid.")
             print("Retrying with format correction...")
-
-            # -------------------------
-            # ATTEMPT 2
-            # -------------------------
 
             raw_output = self._generate(
                 user_input,
